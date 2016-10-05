@@ -221,3 +221,21 @@ def getMCU(partNo):
     mcu = _load_(partNo)
     return mcu
 
+
+def loadIOC(filename):
+    lines = {}
+    with open(filename) as f:
+        while True:
+            line = f.readline().strip()
+            if not line:
+                break
+            if line[0] == '#':
+                continue
+            # print(line)
+            vals = line.split('=', 2)
+            key = vals[0]
+            value = vals[1]
+            lines[key] = value
+
+    return lines
+

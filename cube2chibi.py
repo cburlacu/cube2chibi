@@ -3,28 +3,7 @@
 import os, sys
 import argparse
 import cube
-
-
-def loadIOC(filename):
-    lines = {}
-    with open(filename) as f:
-        while True:
-            line = f.readline().strip()
-            if not line:
-                break
-            if line[0] == '#':
-                continue
-            # print(line)
-            vals = line.split('=', 2)
-            key = vals[0]
-            value = vals[1]
-            lines[key] = value
-
-    return lines
-
-
-def generateConfig(micro, boardFile):
-    print(micro.partNumber, boardFile)
+import chibi
 
 
 if __name__ == "__main__":
@@ -42,14 +21,14 @@ if __name__ == "__main__":
     if not os.path.isdir(args.cube):
         print("Folder %s doesn't exist" % args.cube)
         sys.exit(-3)
-    properties = loadIOC(args.ioc)
+    properties = cube.loadIOC(args.ioc)
     try:
         partNo = properties['PCC.PartNumber']
         print(partNo)
         mcu = cube.getMCU(partNo)
         if mcu:
             mcu.updatePins(properties)
-            generateConfig(mcu, args.output)
+            chibi.generateConfig(mcu, args.output)
         else:
             print("Failed to load %s" % partNo)
     except KeyError:
