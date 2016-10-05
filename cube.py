@@ -16,7 +16,8 @@ def getRoot(fileName):
         m = re.match('\{.*\}', root.tag)
         return root, m.group(0) if m else ''
     except Exception as ex:
-        print("Failed to load %s - %s" % (fileName, ex))
+        print("Failed to load %s - %s\n"
+              "Is the CubeMX path right?" % (fileName, ex))
         return None, None
 
 
@@ -135,57 +136,12 @@ class MCU:
     pins = {}
     gpiosDesc = None
 
-    def __load__(self, partNo):
-        self.partNumber = partNo
-
-        print("Loading %s" % self.partNumber)
-        try:
-            root, ns = getRoot(args.cube + MCU_FAMILIES_PATH)
-            elems = getElems(root, "Mcu[@RefName='%s']" % self.partNumber, ns)
-            if len(elems) != 1:
-                print("Cannot identify the MCU (%s)" % self.partNumber)
-                sys.exit(-4)
-            mcu = elems[0]
-            self.name = mcu.attrib['Name']
-            mcuDesc, ns = getRoot(args.cube + MCU_PATH + self.name + ".xml")
-            gpioIp = getElems(mcuDesc, "IP[@Name='GPIO']", ns)
-            if len(gpioIp) == 1:
-                gpioVersion = gpioIp[0].attrib['Version']
-                print(gpioVersion)
-                gpioDesc, gns = getRoot(args.cube + IP_PATH + ("GPIO-%s_Modes.xml" % gpioVersion))
-                self.gpiosDesc = getElems(gpioDesc, "GPIO_Pin", gns)
-                # print(self.gpiosDesc)
-            else:
-                print ("Invalid GPIO description")
-            pinsDesc = getElems(mcuDesc, "Pin", ns)
-            print(len(pinsDesc))
-            count = 0
-            alreadyExists = 0
-            for pinDesc in pinsDesc:
-                pin = Pin()
-                pin.pinNo = int(pinDesc.attrib['Position'])
-                pin.Pin = pinDesc.attrib['Name']
-                pinDescs = [i for i in self.gpiosDesc if i.attrib['Name'] == pin.Pin]
-                pin._gpioDesc = pinDescs[0] if len(pinDescs) >= 1 else None
-                pin._gpioNs = gns
-
-                # print(pin.Pin)
-                if pin.Pin in self.pins:
-                    # print("%s - already exists" % pin.Pin)
-                    alreadyExists += 1
-                self.pins[pin.Pin] = pin
-                count += 1
-            print("%s has %d pins (%d) (%d duplicates)" % (self.partNumber, len(self.pins), count, alreadyExists))
-        except Exception as xxx:
-            self.partNumber = None
-            self.name = None
-            print("Failed to load %s because of %s" % (self.partNumber, xxx))
-
-    def __init__(self, partNo):
-        self.__load__(partNo)
+    def __init__(self):
+        pass
 
     def updatePins(self, props):
         count = 0
+        dummy = {}
         for key in props:
             m = re.match(r'(P[A-K][0-9]+)\.(.*)', key, flags=re.IGNORECASE)
             if m and len(m.groups()) == 2:
@@ -193,13 +149,75 @@ class MCU:
                 gpioProp = m.group(2)
                 pin = self.pins[gpioName] if gpioName in self.pins else None
                 if pin is not None:
+                    dummy[pin.Pin] = "dummy"
                     pin.update(gpioProp, props[key])
                     count += 1
                 else:
                     print("%s was not found in pins??" % gpioName)
         #     else:
         #         print("%s is not a GPIO" % key)
-        print("%s GPIOs updated from CubeMX project" % count)
+        print("%s properties of %d GPIOs were updated from CubeMX project" %
+              (count, len(dummy)))
 
     def __str__(self):
         return "MCU: %s\nName: %s" % (self.partNumber, self.name)
+
+
+def _load_(partNo):
+    mcu = MCU()
+    mcu.partNumber = partNo
+
+    print("Loading %s" % mcu.partNumber)
+    try:
+        root, ns = getRoot(args.cube + MCU_FAMILIES_PATH)
+        if root is None or ns is None:
+            return None
+        elems = getElems(root, "Mcu[@RefName='%s']" % mcu.partNumber, ns)
+        if elems is None or len(elems) != 1:
+            print("Cannot identify the MCU (%s)" % mcu.partNumber)
+            sys.exit(-4)
+        mcuDesc = elems[0]
+        mcu.name = mcuDesc.attrib['Name']
+        mcuDesc, ns = getRoot(args.cube + MCU_PATH + mcu.name + ".xml")
+        gpioIp = getElems(mcuDesc, "IP[@Name='GPIO']", ns)
+        if len(gpioIp) == 1:
+            gpioVersion = gpioIp[0].attrib['Version']
+            print(gpioVersion)
+            gpioDesc, gns = getRoot(
+                args.cube + IP_PATH + ("GPIO-%s_Modes.xml" % gpioVersion))
+            mcu.gpiosDesc = getElems(gpioDesc, "GPIO_Pin", gns)
+            # print(self.gpiosDesc)
+        else:
+            print ("Invalid GPIO description")
+        pinsDesc = getElems(mcuDesc, "Pin", ns)
+        print(len(pinsDesc))
+        count = 0
+        alreadyExists = 0
+        for pinDesc in pinsDesc:
+            pin = Pin()
+            pin.pinNo = int(pinDesc.attrib['Position'])
+            pin.Pin = pinDesc.attrib['Name']
+            pinDescs = [i for i in mcu.gpiosDesc if
+                        i.attrib['Name'] == pin.Pin]
+            pin._gpioDesc = pinDescs[0] if len(pinDescs) >= 1 else None
+            pin._gpioNs = gns
+
+            # print(pin.Pin)
+            if pin.Pin in mcu.pins:
+                # print("%s - already exists" % pin.Pin)
+                alreadyExists += 1
+            mcu.pins[pin.Pin] = pin
+            count += 1
+        print("%s has %d pins (%d) (%d duplicates)" % (
+            mcu.partNumber, len(mcu.pins), count, alreadyExists))
+    except KeyError as xxx:
+        mcu = None
+        print("Failed to load %s because of %s" % (partNo, xxx))
+
+    return mcu
+
+
+def getMCU(partNo):
+    mcu = _load_(partNo)
+    return mcu
+

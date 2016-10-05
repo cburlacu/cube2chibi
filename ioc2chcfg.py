@@ -22,6 +22,7 @@ def loadIOC(filename):
 
     return lines
 
+
 def generateConfig(micro, boardFile):
     print(micro.partNumber, boardFile)
 
@@ -45,9 +46,11 @@ if __name__ == "__main__":
     try:
         partNo = properties['PCC.PartNumber']
         print(partNo)
-        mcu = cube.MCU(partNo)
-        mcu.updatePins(properties)
-
-        generateConfig(mcu, args.output)
+        mcu = cube.getMCU(partNo)
+        if mcu:
+            mcu.updatePins(properties)
+            generateConfig(mcu, args.output)
+        else:
+            print("Failed to load %s" % partNo)
     except KeyError:
         print("Cannot find the MCU in the %s" % args.ioc)
