@@ -1,104 +1,93 @@
 #!/usr/bin/env python
+
+# Copyright (C) Cezar Burlacu
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import sys
-import xml.etree.ElementTree as et
-import re
+from utils import *
+from collections import defaultdict
 
 MCU_PATH = '/db/mcu/'
 IP_PATH = '/db/mcu/IP/'
 MCU_FAMILIES_PATH = '/db/mcu/families.xml'
 args = None
 
+_resistor = {
+    'GPIO_PULLUP': 'PullUp',
+    'GPIO_PULLDOWN': 'PullDown',
+}
 
-def getRoot(fileName):
-    try:
-        print("Loading %s" % fileName)
-        root = et.parse(fileName).getroot()
-        m = re.match('\{.*\}', root.tag)
-        return root, m.group(0) if m else ''
-    except Exception as ex:
-        print("Failed to load %s - %s\n"
-              "Is the CubeMX path right?" % (fileName, ex))
-        return None, None
+_speed = {
+    'GPIO_SPEED_FREQ_LOW': 'Minimum',
+    'GPIO_SPEED_FREQ_MEDIUM': 'Low',
+    'GPIO_SPEED_FREQ_HIGH': 'High',
+    'GPIO_SPEED_FREQ_VERY_HIGH': 'Maximum',
+}
 
+# by default CubeMX is setting the GPIO as low
+_level = {
+    'PinState': 'GPIO_PIN_SET',
+}
 
-def getElems(elem, xpath, ns):
-    xpath = xpath.format(ns)
-    xpathExpr = ".//%s%s" % (ns, xpath)
-    return elem.findall(xpathExpr)
-
-def getElem(elem, xpath, ns):
-    xpath = xpath.format(ns)
-    xpathExpr = ".//%s%s" % (ns, xpath)
-    return elem.find(xpathExpr)
-
-
-def getValue(properties, key, default):
-    if key in properties:
-        return properties[key]
-    else:
-        return default
+_signal = {
+    r'GPIO_Input': 'Input',
+    r'GPIO_Output': 'Output',
+    r'ADC[0-9x]+_IN[0-9]+': 'Analog',
+    r'IN[0-9]{1,2}': 'Analog'
+}
 
 
 class Pin:
     pinNo = -1
+    CName = "N/A"  # cube mx name
     Pin = "N/A"
-    SignalName = ""
-    ID = ""
-    Type = "PushPull"
-    Level = "High"
-    Speed = "Maximum"
-    Resistor = "Floating"
-    Mode = "Input"
-    ModeCube = "N/A"
-    Alternate = 0
+    SignalName = None
+    AnalogSwitch = None
+    PinLocked = None
+    ID = None
+    Type = None
+    Level = None
+    Speed = None
+    Resistor = None
+    Mode = None
+    ModeCube = None
+    Alternate = None
     _gpioDesc = None
     _gpioNs = ''
-
-    __resistor = {
-        'GPIO_PULLUP': 'PullUp',
-        'GPIO_PULLDOWN': 'PullDown',
-    }
-
-    __speed = {
-        'GPIO_SPEED_FREQ_LOW': 'Minimum',
-        'GPIO_SPEED_FREQ_MEDIUM': 'Low',
-        'GPIO_SPEED_FREQ_HIGH': 'High',
-        'GPIO_SPEED_FREQ_VERY_HIGH': 'Maximum',
-    }
-
-    # by default CubeMX is setting the GPIO as low
-    __level = {
-        'PinState': 'GPIO_PIN_SET',
-    }
-
-    __signal = {
-        r'GPIO_Input': 'Input',
-        r'GPIO_Output': 'Output',
-        r'ADC[0-9x]+_IN[0-9]+': 'Analog',
-        r'IN[0-9]{1,2}': 'Analog'
-    }
+    parent = None
 
     def __init__(self):
         pass
 
     def getModeFromSignal(self, signal):
-        mode = None
+        mode = "Input"
 
-        for key in self.__signal:
+        for key in _signal:
             if re.match(key, signal):
-                mode = self.__signal[key]
+                mode = _signal[key]
                 return mode
         # find alternate function
         if self._gpioDesc is not None:
             pinSignal = getElem(self._gpioDesc, "PinSignal[@Name='%s']//{0}PossibleValue" % signal, self._gpioNs)
             if pinSignal is not None:
-                print ("Success for %s" % pinSignal.text)
+                # print ("Success for %s" % pinSignal.text)
                 expr = r'GPIO_AF([0-9]{1,2}).*'
                 m = re.match(expr, pinSignal.text)
                 if m and m.groups() >= 1:
                     self.Mode = 'Alternate'
-                    self.Alternate = int(m.group(1))
-                    print(signal, self.Mode, self.Alternate)
+                    self.Alternate = m.group(1)
+                    # print(signal, self.Mode, self.Alternate)
                 else:
                     print ("Failed to read %s" % signal)
             else:
@@ -112,16 +101,16 @@ class Pin:
         if prop == 'GPIO_Label':
             self.ID = value
         elif prop == 'GPIO_PuPd':
-            self.Resistor = getValue(self.__resistor, value, "Floating")
+            self.Resistor = getValue(_resistor, value, "Floating")
         elif prop == 'GPIO_Speed':
-            self.Speed = getValue(self.__speed, value, "Maximum")
+            self.Speed = getValue(_speed, value, "Maximum")
         elif prop == 'Signal':
             self.SignalName = value
             self.Mode = self.getModeFromSignal(value)
         elif prop == 'Mode':
             self.ModeCube = value  # the mode will be updated when signal is set
         elif prop == 'PinState':
-            self.Level = getValue(self.__level, value, "Low")
+            self.Level = getValue(_level, value, "Low")
         else:
             pass
             # print("Property %s is not used" % prop)
@@ -134,28 +123,41 @@ class MCU:
     partNumber = None
     name = ""
     pins = {}
+    ports = defaultdict(list)
     gpiosDesc = None
+    HSEClock = None
+    LSEClock = None
+    VDD = None
+    Family = None
 
     def __init__(self):
         pass
 
-    def updatePins(self, props):
+    def updateProperties(self, props):
         count = 0
         dummy = {}
         for key in props:
-            m = re.match(r'(P[A-K][0-9]+)\.(.*)', key, flags=re.IGNORECASE)
+            processed = False
+            m = re.match(r'(P[A-K][0-9]{1,2})\.(.*)', key, flags=re.IGNORECASE)
             if m and len(m.groups()) == 2:
                 gpioName = m.group(1)
                 gpioProp = m.group(2)
-                pin = self.pins[gpioName] if gpioName in self.pins else None
+                port, pin = getPortInfo(gpioName)
+                pinName = getPinName(port, pin)
+                pin = self.pins[pinName] if pinName in self.pins else None
                 if pin is not None:
                     dummy[pin.Pin] = "dummy"
                     pin.update(gpioProp, props[key])
                     count += 1
                 else:
                     print("%s was not found in pins??" % gpioName)
+
         #     else:
         #         print("%s is not a GPIO" % key)
+            if not processed:  # try RCC - clocks
+                if key == 'RCC.HSE_VALUE':
+                    self.HSEClock = props[key]
+                # elif key == '':
         print("%s properties of %d GPIOs were updated from CubeMX project" %
               (count, len(dummy)))
 
@@ -177,12 +179,17 @@ def _load_(partNo):
             print("Cannot identify the MCU (%s)" % mcu.partNumber)
             sys.exit(-4)
         mcuDesc = elems[0]
+        try:
+            mcu.Family = mcuDesc.getparent().getparent().attrib['Name'] + 'xx'
+        except:
+            pass
+
         mcu.name = mcuDesc.attrib['Name']
         mcuDesc, ns = getRoot(args.cube + MCU_PATH + mcu.name + ".xml")
         gpioIp = getElems(mcuDesc, "IP[@Name='GPIO']", ns)
         if len(gpioIp) == 1:
             gpioVersion = gpioIp[0].attrib['Version']
-            print(gpioVersion)
+            print("GPIO version is '%s'" % gpioVersion)
             gpioDesc, gns = getRoot(
                 args.cube + IP_PATH + ("GPIO-%s_Modes.xml" % gpioVersion))
             mcu.gpiosDesc = getElems(gpioDesc, "GPIO_Pin", gns)
@@ -190,26 +197,40 @@ def _load_(partNo):
         else:
             print ("Invalid GPIO description")
         pinsDesc = getElems(mcuDesc, "Pin", ns)
-        print(len(pinsDesc))
+        print("%s has %d pins" % (partNo, len(pinsDesc)))
         count = 0
         alreadyExists = 0
+        duplicates = {}
         for pinDesc in pinsDesc:
             pin = Pin()
+            pin.parent = mcu
             pin.pinNo = int(pinDesc.attrib['Position'])
-            pin.Pin = pinDesc.attrib['Name']
-            pinDescs = [i for i in mcu.gpiosDesc if
-                        i.attrib['Name'] == pin.Pin]
-            pin._gpioDesc = pinDescs[0] if len(pinDescs) >= 1 else None
+            pin.CName = pinDesc.attrib['Name']
+            port, pinNo = getPortInfo(pin.CName)
+            pin.Pin = getPinName(port, pinNo)
+            # find gpio description from gpio-xxx_modes.xml
+
+            gpio_desc = [i for i in mcu.gpiosDesc if
+                        i.attrib['Name'] == pin.CName]
+            pin._gpioDesc = gpio_desc[0] if len(gpio_desc) >= 1 else None
+
+            # pin._gpioDesc = pinDesc
             pin._gpioNs = gns
 
             # print(pin.Pin)
             if pin.Pin in mcu.pins:
                 # print("%s - already exists" % pin.Pin)
                 alreadyExists += 1
+                duplicates[pin.Pin] = "dummy"
             mcu.pins[pin.Pin] = pin
             count += 1
-        print("%s has %d pins (%d) (%d duplicates)" % (
-            mcu.partNumber, len(mcu.pins), count, alreadyExists))
+
+
+            if port is not None and pinNo is not None:
+                mcu.ports[port].append(pinNo)
+
+        print("%s has %d pins (%d) (%d duplicates - %s)" % (
+            mcu.partNumber, len(mcu.pins), count, alreadyExists, str(duplicates.keys())))
     except KeyError as xxx:
         mcu = None
         print("Failed to load %s because of %s" % (partNo, xxx))
