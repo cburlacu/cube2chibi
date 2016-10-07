@@ -14,6 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""
+    Misc
+"""
+
 import lxml.etree as et
 import re
 
@@ -30,6 +34,8 @@ def getPortInfo(name):
 
 
 def getPinName(port, pinNo):
+    if port is None or pinNo is None:
+        return None
     return "{0}{1}".format(port, pinNo)
 
 

@@ -14,6 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""
+    All CubeMX parsing and the "models: mcu, pin"
+"""
+
 import sys
 from utils import *
 from collections import defaultdict
@@ -91,7 +95,7 @@ class Pin:
                 else:
                     print ("Failed to read %s" % signal)
             else:
-                print("Failed: %s" % signal)
+                print("Failed: %s" % signal, self.CName, self.Pin)
         else:
             print "Invalid description - %s / %s " % (self.Pin, signal)
 
@@ -190,8 +194,7 @@ def _load_(partNo):
         if len(gpioIp) == 1:
             gpioVersion = gpioIp[0].attrib['Version']
             print("GPIO version is '%s'" % gpioVersion)
-            gpioDesc, gns = getRoot(
-                args.cube + IP_PATH + ("GPIO-%s_Modes.xml" % gpioVersion))
+            gpioDesc, gns = getRoot(args.cube + IP_PATH + ("GPIO-%s_Modes.xml" % gpioVersion))
             mcu.gpiosDesc = getElems(gpioDesc, "GPIO_Pin", gns)
             # print(self.gpiosDesc)
         else:
@@ -207,24 +210,21 @@ def _load_(partNo):
             pin.pinNo = int(pinDesc.attrib['Position'])
             pin.CName = pinDesc.attrib['Name']
             port, pinNo = getPortInfo(pin.CName)
-            pin.Pin = getPinName(port, pinNo)
-            # find gpio description from gpio-xxx_modes.xml
+            pinName = getPinName(port, pinNo)
+            pin.Pin = pinName if not isEmpty(pinName) else pin.CName
 
+            # find gpio description from gpio-xxx_modes.xml
             gpio_desc = [i for i in mcu.gpiosDesc if
                         i.attrib['Name'] == pin.CName]
             pin._gpioDesc = gpio_desc[0] if len(gpio_desc) >= 1 else None
 
-            # pin._gpioDesc = pinDesc
             pin._gpioNs = gns
 
-            # print(pin.Pin)
             if pin.Pin in mcu.pins:
-                # print("%s - already exists" % pin.Pin)
                 alreadyExists += 1
                 duplicates[pin.Pin] = "dummy"
             mcu.pins[pin.Pin] = pin
             count += 1
-
 
             if port is not None and pinNo is not None:
                 mcu.ports[port].append(pinNo)

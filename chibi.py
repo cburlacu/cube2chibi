@@ -130,7 +130,7 @@ def getValue(dictionary, key, newValue, default=""):
 
     try:
         oldValue = dictionary[key]
-    except KeyError as ex:
+    except (KeyError, TypeError) as ex:
         oldValue = None
 
     if not isEmpty(newValue):
@@ -184,7 +184,6 @@ def generateConfig(micro, boardIn, boardOut):
 
     # set namespace
     root = et.Element(ct['root'], nsmap={'xsi': boardNs})
-    print "NS is ", ns
     root.attrib["{%s}noNamespaceSchemaLocation" % boardNs] = chSchema[family]
 
     # set root element to the tree - used to write
@@ -196,28 +195,37 @@ def generateConfig(micro, boardIn, boardOut):
     confElem = getOrCreateElem(oldRoot, ct['conf'], ct['conf'], ns)
     elem = getOrCreateElem(confElem, ct['template'], ct['template'], ns)
     elem.text = chTemplates[family]
+    print elem.text
+    print family
     confElem.append(elem)
 
-    elem = getOrCreateElem(confElem, ct['out'], ct['out'], ns)
+    elem = getOrCreateElem(oldRoot, ct['out'], ct['out'], ns)
+    elem.text = getValue(None, None, elem.text, '..')
     confElem.append(elem)
-    elem = getOrCreateElem(confElem, ct['hal'], ct['hal'], ns)
+
+    elem = getOrCreateElem(oldRoot, ct['hal'], ct['hal'], ns)
+    elem.text = getValue(None, None, elem.text, '3.0.x')
     confElem.append(elem)
     root.append(confElem)
 
     # board name
     elem = getOrCreateElem(oldRoot, ct['name'], ct['name'], ns)
+    elem.text = getValue(None, None, elem.text, 'Custom board')
     root.append(elem)
 
     # board id
     elem = getOrCreateElem(oldRoot, ct['board_id'], ct['board_id'], ns)
+    elem.text = getValue(None, None, elem.text, 'CUSTOM_BOARD')
     root.append(elem)
 
     # board functions
     elem = getOrCreateElem(oldRoot, ct['func'], ct['func'], ns)
+    elem.text = getValue(None, None, elem.text, '')
     root.append(elem)
 
     # subtype
     elem = getOrCreateElem(oldRoot, ct['subtype'], ct['subtype'], ns)
+    elem.text = getValue(None, None, elem.text, family)
     root.append(elem)
 
     # clock
