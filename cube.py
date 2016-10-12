@@ -133,6 +133,7 @@ class MCU:
     LSEClock = None
     VDD = None
     Family = None
+    CubeFile = ""
 
     def __init__(self):
         pass
@@ -207,7 +208,7 @@ def _load_(partNo):
         for pinDesc in pinsDesc:
             pin = Pin()
             pin.parent = mcu
-            pin.pinNo = int(pinDesc.attrib['Position'])
+            pin.pinNo = pinDesc.attrib['Position']
             pin.CName = pinDesc.attrib['Name']
             port, pinNo = getPortInfo(pin.CName)
             pinName = getPinName(port, pinNo)

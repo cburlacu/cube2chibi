@@ -26,7 +26,7 @@ if __name__ == "__main__":
     parser.add_argument("--ioc", required=True, help="The file to convert")
     parser.add_argument("--cube", required=True, help="STM32CubeMX installation folder")
     parser.add_argument("--output", required=False, default='board.chcfg', help="The .chcfg file output")
-    parser.add_argument("--chibi", required=False, default='board.chcfg', help="The .chcfg file input")
+    parser.add_argument("--chibi", required=False, default=None, help="The .chcfg file input")
     args = parser.parse_args()
     cube.args = args
     print("Starting to parse %s" % args.ioc)
@@ -38,15 +38,22 @@ if __name__ == "__main__":
         print("Folder %s doesn't exist" % args.cube)
         sys.exit(-3)
     properties = cube.loadIOC(args.ioc)
-    try:
-        partNo = properties['PCC.PartNumber']
-    except KeyError as ex:
-        print("Cannot find the MCU in the %s" % args.ioc, ex)
+    partNo = None
+    for key in ['PCC.PartNumber', 'Mcu.UserName']:
+        try:
+            partNo = properties[key]
+            break
+        except KeyError as ex:
+            pass
     print(partNo)
-    mcu = cube.getMCU(partNo)
-    if mcu:
-        mcu.updateProperties(properties)
-
-        chibi.generateConfig(mcu, args.chibi, args.output)
+    if partNo is not None:
+        mcu = cube.getMCU(partNo)
+        if mcu:
+            mcu.updateProperties(properties)
+            mcu.CubeFile = args.ioc
+            chibi.generateConfig(mcu, args.chibi, args.output)
+        else:
+            print("Failed to load %s" % partNo)
     else:
-        print("Failed to load %s" % partNo)
+        print("Failed to identify the part number in the specified file %s"
+                % args.ioc)
