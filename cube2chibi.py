@@ -24,7 +24,7 @@ import chibi
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Parsing a STM32CubeMX project file")
     parser.add_argument("--ioc", required=True, help="The file to convert")
-    parser.add_argument("--cube", required=True, help="STM32CubeMX installation folder")
+    parser.add_argument("--cube", required=True, help="The STM32CubeMX installation folder")
     parser.add_argument("--output", required=False, default='board.chcfg', help="The .chcfg file output")
     parser.add_argument("--chibi", required=False, default=None, help="The .chcfg file input")
     args = parser.parse_args()
