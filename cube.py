@@ -30,6 +30,7 @@ args = None
 _resistor = {
     'GPIO_PULLUP': 'PullUp',
     'GPIO_PULLDOWN': 'PullDown',
+    'GPIO_NOPULL': 'Floating'
 }
 
 _speed = {
@@ -41,7 +42,8 @@ _speed = {
 
 # by default CubeMX is setting the GPIO as low
 _level = {
-    'PinState': 'GPIO_PIN_SET',
+    'GPIO_PIN_SET': 'High',
+    'GPIO_PIN_RESET': 'Low',
 }
 
 _signal = {
@@ -52,7 +54,8 @@ _signal = {
 }
 
 _type = {
-    'GPIO_MODE_OUTPUT_OD': 'OpenDrain'
+    'GPIO_MODE_OUTPUT_OD': 'OpenDrain',
+    'GPIO_MODE_OUTPUT_PP': 'PushPull'
 }
 
 
