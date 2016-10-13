@@ -28,3 +28,6 @@ where:
 5. Update MCU properties from the dictionary
 6. Mix the information with the existing chibi config file if provided
 7. Save chibi config file
+
+# TODO:
+1. Fix all default properties of GPIOs

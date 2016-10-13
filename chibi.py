@@ -54,7 +54,7 @@ ct = {
 # chibi gpio pin configuration default values
 chdef = {
     'Type': 'PushPull',
-    'Level': 'High',
+    'Level': 'Low',
     'Speed': 'Maximum',
     'Resistor': 'Floating',
     'Mode': 'Input',
