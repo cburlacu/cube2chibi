@@ -51,6 +51,10 @@ _signal = {
     r'IN[0-9]{1,2}': 'Analog'
 }
 
+_type = {
+    'GPIO_MODE_OUTPUT_OD': 'OpenDrain'
+}
+
 
 class Pin:
     pinNo = -1
@@ -115,6 +119,8 @@ class Pin:
             self.ModeCube = value  # the mode will be updated when signal is set
         elif prop == 'PinState':
             self.Level = getValue(_level, value, "Low")
+        elif prop == 'GPIO_ModeDefaultOutputPP':
+            self.Type = getValue(_type, value, "PushPull")
         else:
             pass
             # print("Property %s is not used" % prop)
