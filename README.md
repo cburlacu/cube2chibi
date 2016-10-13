@@ -3,6 +3,16 @@
 - python
 - python-lxml
 
+# Usage
+python cube2chibi.py --ioc <cube MX project> --cube <STM32CubeMX Path> --chibi <initial chibi config file> --output <chibi config file output>
+where:
+    - <cube MX project> - The file to convert
+    - <STM32CubeMX Path> - The STM32CubeMX installation folder
+    - <initial chibi config file> - The original chibi board config file - if this file
+                                    is provided, information from this file will be merged
+                                    with cube MX project file
+    - <chibi config file output> - The result file: chibi board config file
+    
 # Flow
 1. Parse .ioc file as a  dictionary 
 2. Find MCU part number in the dictionary
