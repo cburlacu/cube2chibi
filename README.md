@@ -4,7 +4,11 @@
 - python-lxml
 
 # Usage
-python cube2chibi.py --ioc <cube MX project> --cube <STM32CubeMX Path> --chibi <initial chibi config file> --output <chibi config file output>
+python cube2chibi.py 
+        --ioc <cube MX project> 
+        --cube <STM32CubeMX Path> 
+        --chibi <initial chibi config file> 
+        --output <chibi config file output>
 where:
     - <cube MX project> - The file to convert
     - <STM32CubeMX Path> - The STM32CubeMX installation folder
