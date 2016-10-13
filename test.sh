@@ -12,7 +12,7 @@ fi
 
 tmpFile=`mktemp`
 destFile="$(basename $1).chcfg"
-./cube2chibi.py --ioc $1 --cube $STM32_CUBEMX --output $tmpFile
+$CUBE2CHIBI --ioc $1 --cube $STM32_CUBEMX --output $tmpFile
 
 sizeOf=`stat --printf="%s" $tmpFile`
 
