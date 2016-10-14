@@ -62,7 +62,12 @@ def getElem(parent, xpath, ns):
         return None
     xpath = xpath.format(ns)
     xpathExpr = ".//%s%s" % (ns, xpath)
-    return parent.find(xpathExpr)
+    elem = None
+    try:
+        elem = parent.find(xpathExpr)
+    except Exception as ex:
+        print ex
+    return elem
 
 
 def getOrCreateElem(parent, xpath, tag, ns):
@@ -75,13 +80,6 @@ def getOrCreateElem(parent, xpath, tag, ns):
     #     elem = elem.__copy__()
 
     return elem
-
-
-def getValue(properties, key, default):
-    if key in properties:
-        return properties[key]
-    else:
-        return default
 
 
 def isEmpty(s):

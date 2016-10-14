@@ -21,23 +21,20 @@ import cube
 import chibi
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Parsing a STM32CubeMX project file")
-    parser.add_argument("--ioc", required=True, help="The file to convert")
-    parser.add_argument("--cube", required=True, help="The STM32CubeMX installation folder")
-    parser.add_argument("--output", required=False, default='board.chcfg', help="The .chcfg file output")
-    parser.add_argument("--chibi", required=False, default=None, help="The .chcfg file input")
-    args = parser.parse_args()
-    cube.args = args
-    print("Starting to parse %s" % args.ioc)
+CUBE_PATH = None
+
+
+def processFile(iCube, iChibi, oChibi):
+    print("Starting to parse %s" % iCube)
     # validate params
-    if not os.path.isfile(args.ioc):
-        print("File %s doesn't exist" % args.ioc)
+    mcu = None
+    if not os.path.isfile(iCube):
+        print("File %s doesn't exist" % iCube)
         sys.exit(-2)
-    if not os.path.isdir(args.cube):
-        print("Folder %s doesn't exist" % args.cube)
+    if not os.path.isdir(CUBE_PATH):
+        print("Folder %s doesn't exist" % CUBE_PATH)
         sys.exit(-3)
-    properties = cube.loadIOC(args.ioc)
+    properties = cube.loadIOC(iCube)
     partNo = None
     for key in ['PCC.PartNumber', 'Mcu.UserName']:
         try:
@@ -49,11 +46,38 @@ if __name__ == "__main__":
     if partNo is not None:
         mcu = cube.getMCU(partNo)
         if mcu:
+            mcu.CubeFile = iCube
             mcu.updateProperties(properties)
-            mcu.CubeFile = args.ioc
-            chibi.generateConfig(mcu, args.chibi, args.output)
+            chibi.generateConfig(mcu, iChibi, oChibi)
         else:
             print("Failed to load %s" % partNo)
     else:
         print("Failed to identify the part number in the specified file %s"
-                % args.ioc)
+              % iCube)
+    return mcu
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Parsing a STM32CubeMX project file")
+    parser.add_argument("--ioc", required=True, help="The file to convert")
+    parser.add_argument("--cube", required=True, help="The STM32CubeMX installation folder")
+    parser.add_argument("--output", required=False, default='board.chcfg', help="The .chcfg file output")
+    parser.add_argument("--chibi", required=False, default=None, help="The .chcfg file input")
+    args = parser.parse_args()
+    # cube.args = args
+    CUBE_PATH = cube.CUBE_PATH = args.cube
+    iocFile = args.ioc
+
+    processFile(iocFile, args.chibi, args.output)
+
+    counter = 0
+    for root, subFolders, files in os.walk(CUBE_PATH):
+        for file in files:
+            if file.endswith('.ioc'):
+                counter += 1
+                fileName = os.path.join(root, file)
+                processFile(fileName, None, "out/" + file[:-4] + ".chcfg")
+                print file
+
+    print("Found %d files" % counter)
+
