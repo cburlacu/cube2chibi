@@ -70,14 +70,14 @@ if __name__ == "__main__":
 
     processFile(iocFile, args.chibi, args.output)
 
-    counter = 0
-    for root, subFolders, files in os.walk(CUBE_PATH):
-        for file in files:
-            if file.endswith('.ioc'):
-                counter += 1
-                fileName = os.path.join(root, file)
-                processFile(fileName, None, "out/" + file[:-4] + ".chcfg")
-                print file
-
-    print("Found %d files" % counter)
+    # counter = 0
+    # for root, subFolders, files in os.walk(CUBE_PATH):
+    #     for file in files:
+    #         if file.endswith('.ioc'):
+    #             counter += 1
+    #             fileName = os.path.join(root, file)
+    #             processFile(fileName, None, "out/" + file[:-4] + ".chcfg")
+    #             print file
+    #
+    # print("Found %d files" % counter)
 
