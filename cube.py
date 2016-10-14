@@ -215,6 +215,15 @@ class MCU:
             if not processed:  # try RCC - clocks
                 if key == 'RCC.HSE_VALUE':
                     self.HSEClock = props[key]
+                elif key == 'PCC.Vdd':
+                    try:
+                        vdd = float(props[key]) * 100
+                        self.VDD = str(int(vdd))
+                    except:
+                        pass
+                elif key == 'RCC.LSE_VALUE':
+                    self.LSEClock = props[key]
+                # elif key == '':
                 # elif key == '':
         print("%s properties of %d GPIOs were updated from CubeMX project" %
               (count, len(dummy)))
