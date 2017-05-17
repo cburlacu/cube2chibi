@@ -147,9 +147,9 @@ def getValue(dictionary, key, newValue, default=""):
 
 def make_id(str):
     validChars = []
-    validChars += map(chr, xrange(48, 58))
-    validChars += map(chr, xrange(65, 91))
-    validChars += map(chr, xrange(97, 123))
+    validChars += map(chr, range(48, 58))
+    validChars += map(chr, range(65, 91))
+    validChars += map(chr, range(97, 123))
     validChars += chr(95)
     retVal = ""
     for ch in str:

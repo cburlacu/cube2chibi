@@ -106,16 +106,16 @@ class Pin:
                 # print ("Success for %s" % pinSignal.text)
                 expr = r'GPIO_AF([0-9]{1,2}).*'
                 m = re.match(expr, pinSignal.text)
-                if m and m.groups() >= 1:
+                if m and len(m.groups()) >= 1:
                     self.Mode = 'Alternate'
                     self.Alternate = m.group(1)
                     # print(signal, self.Mode, self.Alternate)
                 else:
-                    print ("Failed to read %s" % signal)
+                    print("Failed to read %s" % signal)
             else:
                 print("Failed: %s" % signal, self.CName, self.Pin)
         else:
-            print "Invalid description - %s / %s " % (self.Pin, signal)
+            print("Invalid description - %s / %s " % (self.Pin, signal))
 
         return mode
 

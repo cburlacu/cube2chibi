@@ -66,7 +66,7 @@ def getElem(parent, xpath, ns):
     try:
         elem = parent.find(xpathExpr)
     except Exception as ex:
-        print ex
+        print(ex)
     return elem
 
 
