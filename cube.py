@@ -50,7 +50,11 @@ _signal = {
     r'GPIO_Input': 'Input',
     r'GPIO_Output': 'Output',
     r'ADC[0-9x]+_IN[0-9]+': 'Analog',
-    r'IN[0-9]{1,2}': 'Analog'
+    r'IN[0-9]{1,2}': 'Analog',
+    # r'.*JTMS-SWDIO.*': 'Alternate',
+    # r'.*JTCK-SWCLK.*': 'Alternate',
+    # r'.*UART.*': 'Alternate',
+    # r'.*USART.*': 'Alternate',
 }
 
 _type = {
@@ -107,7 +111,7 @@ class Pin:
                 expr = r'GPIO_AF([0-9]{1,2}).*'
                 m = re.match(expr, pinSignal.text)
                 if m and len(m.groups()) >= 1:
-                    self.Mode = 'Alternate'
+                    mode = self.Mode = 'Alternate'
                     self.Alternate = m.group(1)
                     # print(signal, self.Mode, self.Alternate)
                 else:

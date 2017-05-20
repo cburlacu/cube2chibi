@@ -25,6 +25,14 @@ PORT_REGEX = "^P([A-K])([0-9]{1,2})"
 MAX_PINS_PER_PORT = 16
 
 
+validChars = []
+validNumber = map(chr, range(48, 58))
+validChars += validNumber
+validChars += map(chr, range(65, 91))
+validChars += map(chr, range(97, 123))
+validChars += chr(95)
+
+
 def getPortInfo(name):
     m = re.match(PORT_REGEX, name)
     if m is None:
@@ -84,3 +92,24 @@ def getOrCreateElem(parent, xpath, tag, ns):
 
 def isEmpty(s):
     return not bool(s and s.strip())
+
+
+def getNextChar(idx, userLabel):
+    c = userLabel[idx]
+    isValidChar = c in validChars
+    if idx == 0 and (c in validNumber or not isValidChar):
+        return "_"
+    if isValidChar:
+        return str(c)
+    if (userLabel[idx - 1] not in validChars) or \
+            (idx == len(userLabel) - 1):
+        return ""
+    return "_"
+
+
+def make_id(userLabel):
+    retVal = ""
+    for i in range(0, len(userLabel)):
+        retVal += getNextChar(i, userLabel)
+
+    return retVal
